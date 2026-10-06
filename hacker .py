@@ -1,54 +1,67 @@
-import hashlib, time
-from datetime import datetime
+import tkinter as tk
+from tkinter import messagebox
+import datetime
+import platform
+import os
 
-def jadi_hash(pw):
-    return hashlib.sha256(pw.encode()).hexdigest()
+def is_sql_injection(text):
+    patterns = ["' OR", "\" OR", " OR 1=1", "1=1", "--", " UNION ", " SELECT ", " DROP ", "';"]
+    text_upper = text.upper()
+    for p in patterns:
+        if p.upper() in text_upper:
+            return True, p
+    return False, ""
 
-print("=== APLIKASI CYBERSECURITY BUNGA v1.0 ===")
-print("Laptop: Axioo Hype 1 - Mode Hacker Aktif")
-print("")
+def log_activity(username, status, threat=""):
+    waktu = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    laptop = platform.node()
+    line = f"[{waktu}] User:{username} | Status:{status} | Threat:{threat} | Laptop:{laptop} | Lokasi:Jekulo\n"
+    with open("database.txt", "a", encoding="utf-8") as f:
+        f.write(line)
 
-# DAFTAR DULU
-print("--- DAFTAR AKUN BARU ---")
-user_baru = input("Bikin username: ")
-pw_baru = input("Bikin password kuat: ")
-hash_baru = jadi_hash(pw_baru)
+def daftar():
+    user = entry_user.get()
+    pw = entry_pass.get()
+    if not user or not pw:
+        messagebox.showwarning("Gagal", "Username & Password wajib diisi!")
+        return
+    serangan, pola = is_sql_injection(user + " " + pw)
+    if serangan:
+        log_activity(user, "BLOCKED - SQL INJECTION", pola)
+        messagebox.showerror("🚨 SERANGAN TERDETEKSI! 🚨", f"Blue Team Alert!\nPola: {pola}\nAksi: DIBLOKIR & DICATAT")
+        return
+    log_activity(user, "DAFTAR AKUN - AMAN")
+    messagebox.showinfo("Sukses", f"Akun {user} berhasil! Status: AMAN")
 
-# Simpen ke database rahasia
-with open("database.txt", "w") as f:
-    f.write(f"{user_baru}:{hash_baru}")
+def login():
+    user = entry_user.get()
+    serangan, pola = is_sql_injection(user)
+    if serangan:
+        log_activity(user, "BLOCKED - LOGIN INJECTION", pola)
+        messagebox.showerror("🚨 INTRUSION DETECTED", f"Pola: {pola}\nLogin diblokir!")
+        return
+    log_activity(user, "LOGIN - AMAN")
+    messagebox.showinfo("Login", f"Welcome {user}! AMAN")
 
-print(f"\n✅ Akun {user_baru} berhasil dibuat! Hash disimpan!")
-print("Sekarang coba LOGIN\n")
-time.sleep(1)
+def scan_laptop():
+    info = f"Laptop: {platform.node()}\nOS: {platform.system()}\nLokasi: Jekulo\n\nFirewall: Aktif\nBlue Team Mode: ON"
+    messagebox.showinfo("SCAN LAPTOP", info)
 
-# LOGIN
-percobaan = 0
-while percobaan < 3:
-    print(f"--- LOGIN (Percobaan {percobaan+1}/3) ---")
-    u = input("Username: ")
-    p = input("Password: ")
-
-    # Cek database
-    with open("database.txt", "r") as f:
-        data = f.read().split(":")
-        user_asli = data[0]
-        hash_asli = data[1].strip()
-
-    if u == user_asli and jadi_hash(p) == hash_asli:
-        print("\n🎉 AKSES DITERIMA! SELAMAT DATANG HACKER BUNGA!")
-        print(f"Login jam {datetime.now()}")
-        break
-    else:
-        percobaan += 1
-        print("❌ SALAH!")
-        with open("log_hacker.txt", "a") as log:
-            log.write(f"GAGAL LOGIN jam {datetime.now()} coba user:{u} pw:{p}\n")
-
-if percobaan == 3:
-    print("\n🚨 AKUN TERKUNCI 10 DETIK!")
-    for i in range(10, 0, -1):
-        print(f"Terkunci... {i}")
-        time.sleep(1)
-
-input("")
+root = tk.Tk()
+root.title("BUNGA HACKER v8.0 - Blue Team Detector - Axioo Hype 1")
+root.geometry("500x400")
+root.configure(bg="black")
+tk.Label(root, text="BUNGA CYBER SYSTEM", fg="#00FF00", bg="black", font=("Consolas", 18, "bold")).pack(pady=10)
+tk.Label(root, text="🔵 BLUE TEAM - THREAT DETECTOR MODE", fg="cyan", bg="black", font=("Consolas", 10)).pack()
+tk.Label(root, text="Username:", fg="white", bg="black").pack(pady=(20,0))
+entry_user = tk.Entry(root, width=40, font=("Consolas", 11))
+entry_user.pack()
+entry_user.insert(0, "orang_araa")
+tk.Label(root, text="Password:", fg="white", bg="black").pack(pady=(10,0))
+entry_pass = tk.Entry(root, width=40, show="*", font=("Consolas", 11))
+entry_pass.pack()
+tk.Button(root, text="DAFTAR AKUN", bg="#00FF00", fg="black", font=("Consolas", 11, "bold"), width=25, command=daftar).pack(pady=(15,5))
+tk.Button(root, text="LOGIN", bg="#00BFFF", fg="white", font=("Consolas", 11, "bold"), width=25, command=login).pack(pady=5)
+tk.Button(root, text="SCAN LAPTOP", bg="orange", fg="black", font=("Consolas", 10, "bold"), width=25, command=scan_laptop).pack(pady=5)
+tk.Label(root, text="Jekulo | Blue Team | SOC Analyst Journey | 08/10/2026", fg="gray", bg="black", font=("Consolas", 8)).pack(side=tk.BOTTOM, pady=5)
+root.mainloop()
